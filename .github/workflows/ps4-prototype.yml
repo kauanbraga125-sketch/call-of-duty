@@ -34,6 +34,17 @@ jobs:
           sudo ln -sf /usr/bin/ld.lld-18 /usr/local/bin/ld.lld
           clang++ --version
           ld.lld --version
+      - name: Compatibilidade OpenSSL 1.1 apenas no empacotador legado
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -fL --retry 4 --retry-delay 5 \
+            https://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb \
+            -o /tmp/libssl11.deb
+          mkdir -p /tmp/codps4-ssl11
+          dpkg-deb -x /tmp/libssl11.deb /tmp/codps4-ssl11
+          echo "LD_LIBRARY_PATH=/tmp/codps4-ssl11/usr/lib/x86_64-linux-gnu" >> "$GITHUB_ENV"
+
       - name: Compilar EBOOT e empacotar PKG
         working-directory: ps4/prototype
         shell: bash
