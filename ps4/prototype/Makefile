@@ -1,7 +1,7 @@
 # PS4 native boot prototype 0.2 - OpenOrbis >= v0.5.4.
 # No commercial COD binaries/data or SDK binaries are checked into Git.
 TITLE := COD1 PS4 - Prototipo
-VERSION := 01.07
+VERSION := 01.10
 TITLE_ID := CODP40001
 CONTENT_ID := IV0000-CODP40001_00-COD1PS4PROTOTYPE
 # Authinfo from standard OpenOrbis/GoldHEN homebrew examples (not PSN credentials).
@@ -20,7 +20,7 @@ LDFLAGS := -m elf_x86_64 -pie --script $(TOOLCHAIN)/link.x --eh-frame-hdr \
 .PHONY: all clean
 all: $(CONTENT_ID).pkg
 
-build/main.o: main.cpp
+build/main.o: main.cpp map3d_data.h map3d_draw.h map3d_render.h map3d_floor.h map3d_wall.h map3d_move.h
 	@mkdir -p build
 	$(CC) $(CFLAGS) $< -o $@
 
