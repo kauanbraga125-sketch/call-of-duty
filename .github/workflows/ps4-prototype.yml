@@ -1,4 +1,4 @@
-name: PS4 - Prototipo Nativo 0.6
+name: PS4 - Prototipo Nativo 0.7
 
 on:
   workflow_dispatch:
@@ -73,7 +73,29 @@ jobs:
       - name: Publicar PKG experimental
         uses: actions/upload-artifact@v4
         with:
-          name: cod1-ps4-map-preview-v0.6-experimental
+          name: cod1-ps4-map-preview-v0.7-public-no-assets
           path: ps4/prototype/*.pkg
+          if-no-files-found: error
+          retention-days: 14
+
+      # Source-only build kit. No commercial game data is uploaded to GitHub.
+      # This enables packaging the customer's own map locally into one .pkg.
+      - name: Preparar kit local privado (sem mapas comerciais)
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p /tmp/cod1-private-kit/sce_sys /tmp/cod1-private-kit/bin /tmp/cod1-private-kit/ssl
+          cp ps4/prototype/eboot.bin /tmp/cod1-private-kit/eboot.bin
+          cp ps4/prototype/sce_sys/{param.sfo,icon0.png} /tmp/cod1-private-kit/sce_sys/
+          cp openorbis-sdk/bin/linux/{create-gp4,PkgTool.Core} /tmp/cod1-private-kit/bin/
+          cp /tmp/codps4-ssl11/usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 /tmp/cod1-private-kit/ssl/
+          cp /tmp/codps4-ssl11/usr/lib/x86_64-linux-gnu/libssl.so.1.1 /tmp/cod1-private-kit/ssl/
+          test -s /tmp/cod1-private-kit/eboot.bin
+          test -s /tmp/cod1-private-kit/bin/PkgTool.Core
+      - name: Disponibilizar kit local sem arquivos do jogo
+        uses: actions/upload-artifact@v4
+        with:
+          name: cod1-ps4-v0.7-private-local-kit-no-assets
+          path: /tmp/cod1-private-kit/
           if-no-files-found: error
           retention-days: 14

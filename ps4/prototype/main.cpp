@@ -1,4 +1,4 @@
-// COD1 PS4 - independent native map preview 0.6 (geometry experiment).
+// COD1 PS4 - independent native map preview 0.7 (geometry experiment).
 // Clean-room homebrew; this is NOT the original Call of Duty engine or campaign.
 // VideoOut software framebuffer adapted from documented OpenOrbis graphics sample.
 #include <stdint.h>
@@ -32,7 +32,7 @@ static void logmsg(const char *s) {
 static void begin_log() {
     mkdir("/data/codps4", 0777);
     logfile = fopen("/data/codps4/boot.log", "a");
-    logmsg("BOOT 0.6 ENTER main - log opened");
+    logmsg("BOOT 0.7 ENTER main - log opened");
 }
 static void log_rc(const char *stage,int code) {
     char line[200];snprintf(line,sizeof(line),"%s result=%d (0x%08X)",stage,code,(unsigned)code);
@@ -125,9 +125,14 @@ static MapTri map_tris[MAX_MAP_TRIS];
 static unsigned map_count=0;
 static float map_spawn_yaw=0.0f;
 static void load_map_preview() {
-    const char *path="/data/codps4/maps/preview.c4m";
+    // Prefer the single, self-contained PKG map. No user FTP required.
+    const char *path="/app0/preview.c4m";
     FILE *f=fopen(path,"rb");
-    if(!f) {logmsg("MAP 01 no preview.c4m found - keeping test world");return;}
+    if(!f) {
+        path="/data/codps4/maps/preview.c4m"; // optional development fallback
+        f=fopen(path,"rb");
+    }
+    if(!f) {logmsg("MAP 01 no preview.c4m found in PKG or data folder");return;}
     char magic[4]={};unsigned count=0;float origin[4]={};
     if(fread(magic,1,4,f)!=4 || memcmp(magic,"C4M1",4)!=0 ||
        fread(&count,4,1,f)!=1 || fread(origin,4,4,f)!=4 ||
@@ -226,14 +231,14 @@ static void scene3d() {
     text(60,42,"COD1 PS4  /  TESTE DE CAMERA",3,rgb(241,229,198));
     rect(35,941,1540,97,rgb(12,23,24));
     text(62,960,"ANALOGICO ESQUERDO: MOVER   DIREITO: OLHAR",2,rgb(198,218,212));
-    text(62,996,"BOLA: MENU     OPTIONS: MENU    SEM MISSOES NA V0.6",2,rgb(241,195,140));
+    text(62,996,"BOLA: MENU     OPTIONS: MENU    SEM MISSOES NA V0.7",2,rgb(241,195,140));
 }
 static void menu(int selection) {
     background();
     rect(114,145,1690,790,rgb(17,27,30));
     rect(114,145,18,790,rgb(181,145,93));
     text(203,208,"COD 1  -  PS4",8,rgb(239,219,174));
-    text(206,310,"PROTOTIPO NATIVO   V0.6",3,rgb(139,178,164));
+    text(206,310,"PROTOTIPO NATIVO   V0.7",3,rgb(139,178,164));
     rect(210,420,850,450,rgb(24,43,45));
     const char *opts[3]={map_count?"ABRIR MAPA ORIGINAL":"INICIAR TESTE 3D","CONTROLES","SAIR"};
     for(int i=0;i<3;i++) {
@@ -327,7 +332,7 @@ int main() {
     setvbuf(stdout,NULL,_IONBF,0);
     begin_log();
     load_map_preview();
-    logmsg("BOOT 0.6 ENTER init_video");
+    logmsg("BOOT 0.7 ENTER init_video");
     // Explicitly load the graphics module, in line with OpenOrbis's internal
     // module IDs; record the result even if the module is already loaded.
     logmsg("MODULE 01 before VIDEO_OUT load");
@@ -347,7 +352,7 @@ int main() {
     sceKernelUsleep(1500000);
     logmsg("STAGE 03 before UserService load");
     log_rc("MODULE 03 USER_SERVICE load", (int)sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_INTERNAL_USER_SERVICE));
-    logmsg("BOOT 0.6 video returned OK, before UserService");
+    logmsg("BOOT 0.7 video returned OK, before UserService");
     OrbisUserServiceInitializeParams usr;
     memset(&usr,0,sizeof(usr));
     usr.priority=ORBIS_KERNEL_PRIO_FIFO_LOWEST;
@@ -372,7 +377,7 @@ int main() {
         }
         } else logmsg("PAD skipped: sysmodule load failed");
     } else logmsg("PAD: no valid user, skipping pad init");
-    logmsg("BOOT 0.6 entering event loop");
+    logmsg("BOOT 0.7 entering event loop");
     if(pad<0) logmsg("WARNING controller not ready");
     int screen=0,selected=0,frame=2;
     uint32_t prev=0;
