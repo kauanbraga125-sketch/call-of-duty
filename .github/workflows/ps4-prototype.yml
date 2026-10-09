@@ -1,0 +1,33 @@
+name: PS4 - Prototipo Nativo 0.1
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'ps4/prototype/**'
+      - '.github/workflows/ps4-prototype.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar gerador de icone sem dependencias
+        run: |
+          python3 ps4/prototype/tools/make_icon.py /tmp/cod1ps4-icon.png
+          file /tmp/cod1ps4-icon.png
+      - name: Compilar e gerar PKG com OpenOrbis v0.5.4
+        run: |
+          docker run --rm --user 0 \
+            -v "$GITHUB_WORKSPACE":/workspace \
+            -w /workspace/ps4/prototype \
+            openorbisofficial/toolchain:v0.5.4 \
+            bash -euc 'make && test -s IV0000-CODP40001_00-COD1PS4PROTOTYPE.pkg'
+      - name: Publicar PKG experimental
+        uses: actions/upload-artifact@v4
+        with:
+          name: cod1-ps4-boot-v0.1-experimental
+          path: ps4/prototype/*.pkg
+          if-no-files-found: error
+          retention-days: 14
