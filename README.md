@@ -4,6 +4,15 @@
 
 Este repositório organiza um projeto **não oficial** de pesquisa de compatibilidade do **Call of Duty original de 2003 (PC)** com homebrew de PS4. A etapa inicial é identificar os arquivos locais do jogo e mapear os componentes técnicos necessários. O código aqui disponibilizado é independente, criado para inventariar arquivos; não contém código, modelos, mapas, texturas, áudio, executáveis ou outras propriedades intelectuais do Call of Duty.
 
+## Rota escolhida para acelerar o port (09/10/2026)
+
+**[Leia o plano de execução](docs/ROTA-MAIS-RAPIDA.md).** Usaremos a engine de compatibilidade [iocod](https://github.com/PrawyCoD1/iocod) e a camada de plataforma do [ioQuake3-PS4](https://github.com/Mayo1970/ioQuake3-PS4), ambas sob GPL-2.0, após validar a integração.
+
+- **Teste mais próximo:** workflow [iocod para Windows](.github/workflows/iocod-windows.yml). Ele compila apenas a engine pública (sem arquivos do jogo), disponibilizando o resultado como artefato em **GitHub Actions**.
+- **Objetivo nativo:** primeiro PKG da engine que abra no PS4; depois carregamento de mapa e finalmente partida multiplayer.
+- **Limitação:** compilação desktop não prova jogabilidade nem compatibilidade PS4; o modo história ainda não é implementado pelo iocod.
+- **Segurança/licença:** NÃO adicione arquivos de instalação, cracks, dados, EXEs ou DLLs do Call of Duty comercial ao repositório.
+
 ## Comece aqui
 
 1. Tenha uma instalação legítima do jogo original no seu PC. **Não publique os arquivos dela neste repositório.**
@@ -26,6 +35,8 @@ O relatório enumera extensões, número de arquivos e nomes de pacotes `.pk3` c
 
 ## Referências de pesquisa
 
+- [iocod](https://github.com/PrawyCoD1/iocod): fork GPL de ioquake3 com suporte experimental a dados e multiplayer de CoD 1.
+- [ioQuake3-PS4](https://github.com/Mayo1970/ioQuake3-PS4): port GPL da engine ioquake3 com tela 3D, som, controle e rede no PS4.
 - [OpenCoD1](https://github.com/opencod1/opencod1): reconstrução em andamento do multiplayer de Call of Duty (2003), atualmente orientada a Windows/Visual Studio. **Não** foi incorporada ao repositório; verifique licenças e permissões antes de reutilizar código.
 - [OpenOrbis PS4 Toolchain](https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain): ferramentas homebrew e exemplos para PS4, incluindo SDL2.
 - [ioquake3](https://github.com/ioquake/ioq3): estudo de arquitetura de engine derivada de id Tech 3; **não é** uma implementação de Call of Duty.
