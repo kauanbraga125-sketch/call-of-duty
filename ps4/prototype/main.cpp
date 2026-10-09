@@ -235,7 +235,7 @@ static void flip(int frame) {
     }
     active=(active+1)%COUNT;
 }
-static float analog(uint8_t v) {
+static float axis_value(uint8_t v) {
     float x=((int)v-128)/127.0f;
     return fabsf(x)<0.14f?0:clampf(x,-1,1);
 }
@@ -273,8 +273,8 @@ int main() {
         } else if(screen==1) {
             if(pressed & back) {screen=0;logmsg("Return to menu");}
             else {
-                float fwd=-analog(d.leftStick.y),side=analog(d.leftStick.x);
-                float turn=analog(d.rightStick.x),look=-analog(d.rightStick.y);
+                float fwd=-axis_value(d.leftStick.y),side=axis_value(d.leftStick.x);
+                float turn=axis_value(d.rightStick.x),look=-axis_value(d.rightStick.y);
                 cam.yaw+=turn*.032f;
                 cam.pitch=clampf(cam.pitch+look*.017f,-.65f,.65f);
                 cam.x+=(sinf(cam.yaw)*fwd+cosf(cam.yaw)*side)*.16f;
