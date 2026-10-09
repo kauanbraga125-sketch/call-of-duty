@@ -1,4 +1,4 @@
-// COD1 PS4 - independent native map preview 0.7 (geometry experiment).
+// COD1 PS4 - independent native map preview 1.0 (geometry experiment).
 // Clean-room homebrew; this is NOT the original Call of Duty engine or campaign.
 // VideoOut software framebuffer adapted from documented OpenOrbis graphics sample.
 #include <stdint.h>
@@ -119,46 +119,12 @@ struct Camera { float x,z,yaw,pitch; };
 static Camera cam={0,0,0,0};
 // Private map preview generated on the owner's PC. No commercial assets in the PKG.
 // Binary layout: <4sIffff> (24 bytes), then count * <9fI> (40 bytes).
-struct MapTri { float xyz[9]; uint32_t color; };
-static const unsigned MAX_MAP_TRIS = 1200;
-static MapTri map_tris[MAX_MAP_TRIS];
-static unsigned map_count=0;
-static float map_spawn_yaw=0.0f;
-static void load_map_preview() {
-    // Prefer the single, self-contained PKG map. No user FTP required.
-    const char *path="/app0/preview.c4m";
-    FILE *f=fopen(path,"rb");
-    if(!f) {
-        path="/data/codps4/maps/preview.c4m"; // optional development fallback
-        f=fopen(path,"rb");
-    }
-    if(!f) {logmsg("MAP 01 no preview.c4m found in PKG or data folder");return;}
-    char magic[4]={};unsigned count=0;float origin[4]={};
-    if(fread(magic,1,4,f)!=4 || memcmp(magic,"C4M1",4)!=0 ||
-       fread(&count,4,1,f)!=1 || fread(origin,4,4,f)!=4 ||
-       count==0 || count>MAX_MAP_TRIS) {
-        logmsg("MAP ERROR invalid format/header/count");fclose(f);return;
-    }
-    if(fread(map_tris,sizeof(MapTri),count,f)!=count) {
-        logmsg("MAP ERROR incomplete geometry");fclose(f);return;
-    }
-    fclose(f);
-    for(unsigned i=0;i<count;i++) {
-        for(int j=0;j<9;j++) {
-            float v=map_tris[i].xyz[j];
-            if(v!=v || fabsf(v)>100000.0f) {
-                logmsg("MAP ERROR nonfinite/invalid vertex");
-                return;
-            }
-        }
-    }
-    map_count=count;
-    map_spawn_yaw=origin[3]*3.14159265f/180.0f;
-    cam.x=0.0f;cam.z=0.0f;cam.yaw=map_spawn_yaw;cam.pitch=0.0f;
-    char line[160];
-    snprintf(line,sizeof(line),"MAP 02 loaded %u triangles - original game geometry",map_count);
-    logmsg(line);
-}
+#include "map3d_data.h"
+#include "map3d_draw.h"
+#include "map3d_render.h"
+#include "map3d_floor.h"
+#include "map3d_wall.h"
+#include "map3d_move.h"
 
 static float clampf(float x,float lo,float hi) {return x<lo?lo:x>hi?hi:x;}
 static bool project(float x,float y,float z,int &sx,int &sy) {
@@ -196,20 +162,10 @@ static void background() {
 static void scene3d() {
     background();
     if(map_count) {
-        // Simple software wireframe preview. Not a texture renderer or full map engine.
-        for(unsigned i=0;i<map_count;i++) {
-            const MapTri &t=map_tris[i];
-            uint32_t c=rgb((t.color>>16)&255,(t.color>>8)&255,t.color&255);
-            const float *v=t.xyz;
-            edge(v[0],v[1],v[2],v[3],v[4],v[5],c);
-            edge(v[3],v[4],v[5],v[6],v[7],v[8],c);
-            edge(v[6],v[7],v[8],v[0],v[1],v[2],c);
-        }
-        rect(22,24,1340,110,rgb(13,24,26));
-        text(46,40,"COD1 / MAPA ORIGINAL - GEOMETRIA",3,rgb(243,219,170));
-        text(46,88,"SEM TEXTURAS, COLISOES OU MISSOES",2,rgb(229,190,139));
-        rect(24,962,1640,90,rgb(13,24,26));
-        text(45,982,"ANALOGICOS: CAMERA / BOLA: VOLTAR",2,rgb(210,225,213));
+        map3d_render();
+        rect(20,20,1490,120,rgb(13,24,26));
+        text(42,36,"COD1 TRAINING / TEXTURAS ORIGINAIS",3,rgb(242,221,183));
+        text(42,88,"X PULAR / L3 CORRER / BOLA VOLTAR",2,rgb(234,189,135));
         return;
     }
     // Navigation grid in world-space; positive Z is forward.
@@ -331,7 +287,7 @@ static float axis_value(uint8_t v) {
 int main() {
     setvbuf(stdout,NULL,_IONBF,0);
     begin_log();
-    load_map_preview();
+    map3d_load();
     logmsg("BOOT 0.7 ENTER init_video");
     // Explicitly load the graphics module, in line with OpenOrbis's internal
     // module IDs; record the result even if the module is already loaded.
@@ -396,6 +352,9 @@ int main() {
             }
         } else if(screen==1) {
             if(pressed & back) {screen=0;logmsg("Return to menu");}
+            else if(map_count) {
+                map3d_update(d,pressed);
+            }
             else {
                 float fwd=-axis_value(d.leftStick.y),side=axis_value(d.leftStick.x);
                 float turn=axis_value(d.rightStick.x),look=-axis_value(d.rightStick.y);
