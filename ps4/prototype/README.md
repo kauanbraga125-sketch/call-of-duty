@@ -1,4 +1,4 @@
-# CoD 1 PS4 — boot nativo experimental v0.1
+# CoD 1 PS4 — boot nativo experimental v0.2
 
 Esta pasta contem um **aplicativo independente de teste**, não uma porta da campanha e não o executavel comercial CoDSP.exe.
 
@@ -11,7 +11,7 @@ Esta pasta contem um **aplicativo independente de teste**, não uma porta da cam
 - Painel de controles e botao sair.
 - Log persistido, quando acessivel, em \`/data/codps4/boot.log\`.
 
-**Nao inclui:** campanha original, mapas proprietarios, musica, audio, armas, missões, IA, motor real do CoD, gameplay Single Player. O objetivo da v0.1 e apenas demonstrar inicializacao e entradas no hardware.
+**Nao inclui:** campanha original, mapas proprietarios, musica, audio, armas, missões, IA, motor real do CoD, gameplay Single Player. O objetivo da v0.2 e apenas demonstrar inicializacao e entradas no hardware.
 
 ## Compilacao
 
@@ -47,3 +47,14 @@ usa como referencia [Mayo1970/ioQuake3-PS4](https://github.com/Mayo1970/ioQuake3
 sem reutilizar neste prototipo o codigo ou assets da engine Quake 3.
 
 Nao adicionar conteudo de Call of Duty, cracks, executaveis comerciais ou SDK binarios a este repositorio publico.
+
+
+## Falha anterior: mensagem "dados corrompidos" ao iniciar (v0.1)
+
+O pacote v0.1 foi instalado no console, mas recebeu a mensagem de dados do aplicativo corrompidos ao executar. A causa ainda **não foi confirmada**; não foi fornecido um código de erro.
+
+Um erro conhecido no nosso pacote anterior foi identificado: o ícone gerado tinha PNG com color type 6 (RGBA, 32 bits). A documentação do OpenOrbis exige \`icon0.png\` **512×512, RGB 24 bits, sem transparência**. A v0.2 corrige o gerador para color type 2 e testa esse requisito antes da compilação.
+
+Para testar v0.2: **remover apenas o aplicativo experimental antigo** da tela inicial do PS4; confirmar GoldHEN ativado; instalar o novo PKG e capturar o erro exato, se ainda ocorrer. Não apagar outros jogos, nem reconstruir banco de dados/formatação do console para tentar corrigir este protótipo.
+
+Se persistir, investigar a autenticação do fSELF, metadados de PKG e estado de jailbreak com o código CE/NP.

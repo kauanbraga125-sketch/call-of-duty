@@ -1,4 +1,4 @@
-"""Generate a wholly original 512px homebrew icon without external dependencies."""
+"""Generate original 512x512 RGB/24-bit PS4 icon0.png (no alpha)."""
 from pathlib import Path
 import struct
 import sys
@@ -20,10 +20,10 @@ def generate(path):
         row = []
         for x in range(SIZE):
             k = int((x + y) / 32)
-            row.append((max(5,18+k//5), max(15,33+k//3),max(16,35+k//3),255))
+            row.append((max(5,18+k//5), max(15,33+k//3),max(16,35+k//3)))
         rows.append(row)
-    gold=(204,164,95,255)
-    beige=(239,220,184,255)
+    gold=(204,164,95)
+    beige=(239,220,184)
     box(rows,42,42,428,8,gold)
     box(rows,42,463,428,8,gold)
     box(rows,42,42,8,429,gold)
@@ -48,11 +48,11 @@ def generate(path):
     box(rows,252,348,7,54,gold)
     box(rows,114,423,280,5,gold)
     raw=b''.join(b'\x00'+bytes(v for px in row for v in px) for row in rows)
-    hdr=struct.pack(">IIBBBBB", SIZE,SIZE,8,6,0,0,0)
+    hdr=struct.pack(">IIBBBBB", SIZE,SIZE,8,2,0,0,0)
     out=b'\x89PNG\r\n\x1a\n'+pngchunk(b'IHDR',hdr)+pngchunk(b'IDAT',zlib.compress(raw,9))+pngchunk(b'IEND',b'')
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
     path.write_bytes(out)
-    print("Original icon generated:",path,len(out),"bytes")
+    print("Original 24-bit RGB icon generated:",path,len(out),"bytes")
 
 if __name__=="__main__":
     generate(sys.argv[1] if len(sys.argv)>1 else "sce_sys/icon0.png")

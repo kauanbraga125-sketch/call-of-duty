@@ -1,4 +1,4 @@
-name: PS4 - Prototipo Nativo 0.1
+name: PS4 - Prototipo Nativo 0.2
 
 on:
   workflow_dispatch:
@@ -17,6 +17,15 @@ jobs:
         run: |
           python3 ps4/prototype/tools/make_icon.py /tmp/cod1ps4-icon.png
           file /tmp/cod1ps4-icon.png
+          python3 - <<'PY'
+          import struct
+          from pathlib import Path
+          data=Path("/tmp/cod1ps4-icon.png").read_bytes()
+          assert data[:8]==b"\x89PNG\r\n\x1a\n", "Not PNG"
+          assert struct.unpack_from(">II",data,16)==(512,512), "Bad dimensions"
+          assert data[24]==8 and data[25]==2, f"PNG must be 8-bit RGB, not RGBA; got type={data[25]}"
+          print("icon0.png validated: 512x512 RGB 24 bits, no alpha")
+          PY
       - name: Baixar SDK OpenOrbis oficial v0.5.4 (LLVM 18)
         shell: bash
         run: |
@@ -55,7 +64,7 @@ jobs:
       - name: Publicar PKG experimental
         uses: actions/upload-artifact@v4
         with:
-          name: cod1-ps4-boot-v0.1-experimental
+          name: cod1-ps4-boot-v0.2-experimental
           path: ps4/prototype/*.pkg
           if-no-files-found: error
           retention-days: 14
