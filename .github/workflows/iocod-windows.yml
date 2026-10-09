@@ -1,0 +1,51 @@
+name: Teste iocod no Windows
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/iocod-windows.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Compilar engine iocod (sem arquivos do jogo)
+    runs-on: windows-2022
+    timeout-minutes: 55
+    steps:
+      - name: Baixar versao publica do iocod (commit fixo)
+        uses: actions/checkout@v4
+        with:
+          repository: PrawyCoD1/iocod
+          ref: 3e2af443f82a7b777f094df339a12169731c9645
+          persist-credentials: false
+
+      - name: Configurar projeto Visual Studio
+        run: cmake -S . -B build -G "Visual Studio 17 2022"
+
+      - name: Compilar Release
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Verificar binario cliente
+        shell: pwsh
+        run: |
+          $candidate = Get-ChildItem -Path build -Recurse -File -Filter iocod.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $candidate) { throw "Compilacao nao produziu iocod.exe" }
+          Write-Host "Cliente gerado:" $candidate.FullName
+          Get-ChildItem build/Release -Recurse -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Extension -in '.exe','.dll','.qvm' } |
+            Select-Object FullName,Length | Format-Table
+
+      - name: Guardar executaveis e licencas
+        uses: actions/upload-artifact@v4
+        with:
+          name: iocod-multiplayer-Windows-experimental
+          if-no-files-found: error
+          path: |
+            build/Release/**/*.exe
+            build/Release/**/*.dll
+            build/Release/**/*.qvm
+            COPYING.txt
+            README.md
+          retention-days: 14
