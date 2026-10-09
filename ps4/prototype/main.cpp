@@ -273,8 +273,8 @@ int main() {
         } else if(screen==1) {
             if(pressed & back) {screen=0;logmsg("Return to menu");}
             else {
-                float fwd=-analog(d.leftStickY),side=analog(d.leftStickX);
-                float turn=analog(d.rightStickX),look=-analog(d.rightStickY);
+                float fwd=-analog(d.leftStick.y),side=analog(d.leftStick.x);
+                float turn=analog(d.rightStick.x),look=-analog(d.rightStick.y);
                 cam.yaw+=turn*.032f;
                 cam.pitch=clampf(cam.pitch+look*.017f,-.65f,.65f);
                 cam.x+=(sinf(cam.yaw)*fwd+cosf(cam.yaw)*side)*.16f;
