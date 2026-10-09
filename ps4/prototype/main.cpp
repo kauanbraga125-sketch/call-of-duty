@@ -1,4 +1,4 @@
-// COD1 PS4 - independent native boot prototype 0.1.
+// COD1 PS4 - independent native boot prototype 0.4 / diagnostic.
 // Clean-room homebrew; this is NOT the original Call of Duty engine or campaign.
 // VideoOut software framebuffer adapted from documented OpenOrbis graphics sample.
 #include <stdint.h>
@@ -30,7 +30,11 @@ static void logmsg(const char *s) {
 static void begin_log() {
     mkdir("/data/codps4", 0777);
     logfile = fopen("/data/codps4/boot.log", "a");
-    logmsg("Boot prototype 0.1 starting");
+    logmsg("BOOT 0.4 ENTER main - log opened");
+}
+static void log_rc(const char *stage,int code) {
+    char line[200];snprintf(line,sizeof(line),"%s result=%d (0x%08X)",stage,code,(unsigned)code);
+    logmsg(line);
 }
 static uint32_t rgb(int r,int g,int b) {
     return 0x80000000u | ((uint32_t)(r & 255) << 16) | ((uint32_t)(g & 255) << 8) | (uint32_t)(b & 255);
@@ -165,14 +169,14 @@ static void scene3d() {
     text(60,42,"COD1 PS4  /  TESTE DE CAMERA",3,rgb(241,229,198));
     rect(35,941,1540,97,rgb(12,23,24));
     text(62,960,"ANALOGICO ESQUERDO: MOVER   DIREITO: OLHAR",2,rgb(198,218,212));
-    text(62,996,"BOLA: MENU     OPTIONS: MENU    SEM MISSOES NA V0.1",2,rgb(241,195,140));
+    text(62,996,"BOLA: MENU     OPTIONS: MENU    SEM MISSOES NA V0.4",2,rgb(241,195,140));
 }
 static void menu(int selection) {
     background();
     rect(114,145,1690,790,rgb(17,27,30));
     rect(114,145,18,790,rgb(181,145,93));
     text(203,208,"COD 1  -  PS4",8,rgb(239,219,174));
-    text(206,310,"PROTOTIPO NATIVO   V0.1",3,rgb(139,178,164));
+    text(206,310,"PROTOTIPO NATIVO   V0.4",3,rgb(139,178,164));
     rect(210,420,850,450,rgb(24,43,45));
     const char *opts[3]={"INICIAR TESTE 3D","CONTROLES","SAIR"};
     for(int i=0;i<3;i++) {
@@ -198,41 +202,64 @@ static void controls() {
     text(155,843,"OPTIONS: MENU",3,rgb(217,177,126));
 }
 static bool init_video() {
+    logmsg("VIDEO 01 before sceVideoOutOpen");
     video=sceVideoOutOpen(ORBIS_VIDEO_USER_MAIN, ORBIS_VIDEO_OUT_BUS_MAIN, 0, NULL);
+    log_rc("VIDEO 02 sceVideoOutOpen",video);
     if(video<0) {logmsg("ERROR sceVideoOutOpen");return false;}
-    if(sceKernelCreateEqueue(&flip_queue,"cod1 flip queue")<0) {logmsg("ERROR create flip queue");return false;}
-    sceVideoOutAddFlipEvent(flip_queue,video,NULL);
+    logmsg("VIDEO 03 before sceKernelCreateEqueue");
+    int rc=sceKernelCreateEqueue(&flip_queue,"cod1 flip queue");
+    log_rc("VIDEO 04 sceKernelCreateEqueue",rc);
+    if(rc<0) {logmsg("ERROR create flip queue");return false;}
+    rc=sceVideoOutAddFlipEvent(flip_queue,video,NULL);
+    log_rc("VIDEO 05 sceVideoOutAddFlipEvent",rc);
     const size_t align=0x200000;
     direct_size=(FB_BYTES*COUNT+align-1)/align*align;
-    if(sceKernelAllocateDirectMemory(0,sceKernelGetDirectMemorySize(),direct_size,align,3,&direct_offset)<0) {
+    logmsg("VIDEO 06 before sceKernelAllocateDirectMemory");
+    rc=sceKernelAllocateDirectMemory(0,sceKernelGetDirectMemorySize(),direct_size,align,3,&direct_offset);
+    log_rc("VIDEO 07 sceKernelAllocateDirectMemory",rc);
+    if(rc<0) {
         logmsg("ERROR allocate direct video memory");return false;
     }
-    if(sceKernelMapDirectMemory(&mapped,direct_size,0x33,0,direct_offset,align)<0) {
+    logmsg("VIDEO 08 before sceKernelMapDirectMemory");
+    rc=sceKernelMapDirectMemory(&mapped,direct_size,0x33,0,direct_offset,align);
+    log_rc("VIDEO 09 sceKernelMapDirectMemory",rc);
+    if(rc<0) {
         logmsg("ERROR map video memory");return false;
     }
     for(int i=0;i<COUNT;i++) buffers[i]=(uint32_t *)((uint8_t*)mapped+i*FB_BYTES);
     OrbisVideoOutBufferAttribute attr;
     memset(&attr,0,sizeof(attr));
+    logmsg("VIDEO 10 before sceVideoOutSetBufferAttribute");
     sceVideoOutSetBufferAttribute(&attr,0x80000000,1,0,W,H,W);
-    if(sceVideoOutRegisterBuffers(video,0,(void **)buffers,COUNT,&attr)<0) {
+    logmsg("VIDEO 11 before sceVideoOutRegisterBuffers");
+    rc=sceVideoOutRegisterBuffers(video,0,(void **)buffers,COUNT,&attr);
+    log_rc("VIDEO 12 sceVideoOutRegisterBuffers",rc);
+    if(rc<0) {
         logmsg("ERROR register video buffers");return false;
     }
-    sceVideoOutSetFlipRate(video,0);
-    logmsg("VideoOut ready 1920x1080");
+    logmsg("VIDEO 13 before sceVideoOutSetFlipRate");
+    rc=sceVideoOutSetFlipRate(video,0);
+    log_rc("VIDEO 14 sceVideoOutSetFlipRate",rc);
+    logmsg("VIDEO 15 VideoOut ready 1920x1080");
     return true;
 }
 static void flip(int frame) {
-    if(sceVideoOutSubmitFlip(video,active,ORBIS_VIDEO_OUT_FLIP_VSYNC,frame)<0) {
+    if(frame==1) logmsg("FRAME 01 before sceVideoOutSubmitFlip");
+    int rc=sceVideoOutSubmitFlip(video,active,ORBIS_VIDEO_OUT_FLIP_VSYNC,frame);
+    if(frame==1) log_rc("FRAME 02 sceVideoOutSubmitFlip",rc);
+    if(rc<0) {
         logmsg("ERROR submit frame");sceKernelUsleep(16000);return;
     }
     for (;;) {
         OrbisVideoOutFlipStatus status;
         memset(&status,0,sizeof(status));
-        sceVideoOutGetFlipStatus(video,&status);
+        rc=sceVideoOutGetFlipStatus(video,&status);
+        if(frame==1 && rc<0)log_rc("FRAME 03 sceVideoOutGetFlipStatus failed",rc);
         if(status.flipArg==frame) break;
         OrbisKernelEvent evt;int num=0;
         if(sceKernelWaitEqueue(flip_queue,&evt,1,&num,NULL)<0) break;
     }
+    if(frame==1) logmsg("FRAME 04 completed first flip");
     active=(active+1)%COUNT;
 }
 static float axis_value(uint8_t v) {
@@ -242,18 +269,32 @@ static float axis_value(uint8_t v) {
 int main() {
     setvbuf(stdout,NULL,_IONBF,0);
     begin_log();
+    logmsg("BOOT 0.4 ENTER init_video");
     if(!init_video()) {
         logmsg("FATAL graphics initialization failed");
         for(int i=0;i<200;i++) sceKernelUsleep(100000);
         return 1;
     }
+    logmsg("BOOT 0.4 video returned OK, before UserService");
     OrbisUserServiceInitializeParams usr;
     memset(&usr,0,sizeof(usr));
     usr.priority=ORBIS_KERNEL_PRIO_FIFO_LOWEST;
     int user_id=-1;
-    sceUserServiceInitialize(&usr);
-    sceUserServiceGetInitialUser(&user_id);
-    if(scePadInit()==0) pad=scePadOpen(user_id,0,0,NULL);
+    int urc=sceUserServiceInitialize(&usr);
+    log_rc("USER 01 sceUserServiceInitialize",urc);
+    urc=sceUserServiceGetInitialUser(&user_id);
+    log_rc("USER 02 sceUserServiceGetInitialUser",urc);
+    log_rc("USER 03 user ID",user_id);
+    if(user_id>=0) {
+        logmsg("PAD 01 before scePadInit");
+        int prc=scePadInit();
+        log_rc("PAD 02 scePadInit",prc);
+        if(prc==0) {
+            pad=scePadOpen(user_id,0,0,NULL);
+            log_rc("PAD 03 scePadOpen",pad);
+        }
+    } else logmsg("PAD: no valid user, skipping pad init");
+    logmsg("BOOT 0.4 entering event loop");
     if(pad<0) logmsg("WARNING controller not ready");
     int screen=0,selected=0,frame=1;
     uint32_t prev=0;
@@ -282,7 +323,9 @@ int main() {
                 cam.x=clampf(cam.x,-55,55);cam.z=clampf(cam.z,-25,80);
             }
         } else if (screen==2 && (pressed & (back | ORBIS_PAD_BUTTON_CROSS))) screen=0;
+        if(frame==1) logmsg("FRAME 00 before drawing menu");
         if(screen==0) menu(selected);else if(screen==1)scene3d();else controls();
+        if(frame==1) logmsg("FRAME 00 done drawing menu");
         if(pad<0)text(65,1050,"AVISO: CONTROLE NAO DETECTADO",2,rgb(255,149,90));
         flip(frame++);
     }
