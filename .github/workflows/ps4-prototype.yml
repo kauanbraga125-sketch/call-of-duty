@@ -29,6 +29,9 @@ jobs:
           echo "OO_PS4_TOOLCHAIN=$GITHUB_WORKSPACE/openorbis-sdk" >> "$GITHUB_ENV"
           echo "$GITHUB_WORKSPACE/openorbis-sdk/bin/linux" >> "$GITHUB_PATH"
           ls -l openorbis-sdk/bin/linux openorbis-sdk/lib/crt1.o
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lld-18
+          sudo ln -sf /usr/bin/ld.lld-18 /usr/local/bin/ld.lld
           clang++ --version
           ld.lld --version
       - name: Compilar EBOOT e empacotar PKG
