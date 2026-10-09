@@ -1,4 +1,4 @@
-// COD1 PS4 - independent native boot prototype 0.5 / staged diagnostic.
+// COD1 PS4 - independent native map preview 0.6 (geometry experiment).
 // Clean-room homebrew; this is NOT the original Call of Duty engine or campaign.
 // VideoOut software framebuffer adapted from documented OpenOrbis graphics sample.
 #include <stdint.h>
@@ -32,7 +32,7 @@ static void logmsg(const char *s) {
 static void begin_log() {
     mkdir("/data/codps4", 0777);
     logfile = fopen("/data/codps4/boot.log", "a");
-    logmsg("BOOT 0.5 ENTER main - log opened");
+    logmsg("BOOT 0.6 ENTER main - log opened");
 }
 static void log_rc(const char *stage,int code) {
     char line[200];snprintf(line,sizeof(line),"%s result=%d (0x%08X)",stage,code,(unsigned)code);
@@ -117,6 +117,44 @@ static void text(int x,int y,const char *s,int scale,uint32_t col) {
 }
 struct Camera { float x,z,yaw,pitch; };
 static Camera cam={0,0,0,0};
+// Private map preview generated on the owner's PC. No commercial assets in the PKG.
+// Binary layout: <4sIffff> (24 bytes), then count * <9fI> (40 bytes).
+struct MapTri { float xyz[9]; uint32_t color; };
+static const unsigned MAX_MAP_TRIS = 1200;
+static MapTri map_tris[MAX_MAP_TRIS];
+static unsigned map_count=0;
+static float map_spawn_yaw=0.0f;
+static void load_map_preview() {
+    const char *path="/data/codps4/maps/preview.c4m";
+    FILE *f=fopen(path,"rb");
+    if(!f) {logmsg("MAP 01 no preview.c4m found - keeping test world");return;}
+    char magic[4]={};unsigned count=0;float origin[4]={};
+    if(fread(magic,1,4,f)!=4 || memcmp(magic,"C4M1",4)!=0 ||
+       fread(&count,4,1,f)!=1 || fread(origin,4,4,f)!=4 ||
+       count==0 || count>MAX_MAP_TRIS) {
+        logmsg("MAP ERROR invalid format/header/count");fclose(f);return;
+    }
+    if(fread(map_tris,sizeof(MapTri),count,f)!=count) {
+        logmsg("MAP ERROR incomplete geometry");fclose(f);return;
+    }
+    fclose(f);
+    for(unsigned i=0;i<count;i++) {
+        for(int j=0;j<9;j++) {
+            float v=map_tris[i].xyz[j];
+            if(v!=v || fabsf(v)>100000.0f) {
+                logmsg("MAP ERROR nonfinite/invalid vertex");
+                return;
+            }
+        }
+    }
+    map_count=count;
+    map_spawn_yaw=origin[3]*3.14159265f/180.0f;
+    cam.x=0.0f;cam.z=0.0f;cam.yaw=map_spawn_yaw;cam.pitch=0.0f;
+    char line[160];
+    snprintf(line,sizeof(line),"MAP 02 loaded %u triangles - original game geometry",map_count);
+    logmsg(line);
+}
+
 static float clampf(float x,float lo,float hi) {return x<lo?lo:x>hi?hi:x;}
 static bool project(float x,float y,float z,int &sx,int &sy) {
     float dx=x-cam.x,dz=z-cam.z,cy=cosf(cam.yaw),sn=sinf(cam.yaw);
@@ -152,6 +190,23 @@ static void background() {
 }
 static void scene3d() {
     background();
+    if(map_count) {
+        // Simple software wireframe preview. Not a texture renderer or full map engine.
+        for(unsigned i=0;i<map_count;i++) {
+            const MapTri &t=map_tris[i];
+            uint32_t c=rgb((t.color>>16)&255,(t.color>>8)&255,t.color&255);
+            const float *v=t.xyz;
+            edge(v[0],v[1],v[2],v[3],v[4],v[5],c);
+            edge(v[3],v[4],v[5],v[6],v[7],v[8],c);
+            edge(v[6],v[7],v[8],v[0],v[1],v[2],c);
+        }
+        rect(22,24,1340,110,rgb(13,24,26));
+        text(46,40,"COD1 / MAPA ORIGINAL - GEOMETRIA",3,rgb(243,219,170));
+        text(46,88,"SEM TEXTURAS, COLISOES OU MISSOES",2,rgb(229,190,139));
+        rect(24,962,1640,90,rgb(13,24,26));
+        text(45,982,"ANALOGICOS: CAMERA / BOLA: VOLTAR",2,rgb(210,225,213));
+        return;
+    }
     // Navigation grid in world-space; positive Z is forward.
     uint32_t dim=rgb(64,98,94),bright=rgb(132,172,154);
     for(int x=-60;x<=60;x+=3)edge((float)x,0,-30,(float)x,0,100,dim);
@@ -171,16 +226,16 @@ static void scene3d() {
     text(60,42,"COD1 PS4  /  TESTE DE CAMERA",3,rgb(241,229,198));
     rect(35,941,1540,97,rgb(12,23,24));
     text(62,960,"ANALOGICO ESQUERDO: MOVER   DIREITO: OLHAR",2,rgb(198,218,212));
-    text(62,996,"BOLA: MENU     OPTIONS: MENU    SEM MISSOES NA V0.5",2,rgb(241,195,140));
+    text(62,996,"BOLA: MENU     OPTIONS: MENU    SEM MISSOES NA V0.6",2,rgb(241,195,140));
 }
 static void menu(int selection) {
     background();
     rect(114,145,1690,790,rgb(17,27,30));
     rect(114,145,18,790,rgb(181,145,93));
     text(203,208,"COD 1  -  PS4",8,rgb(239,219,174));
-    text(206,310,"PROTOTIPO NATIVO   V0.5",3,rgb(139,178,164));
+    text(206,310,"PROTOTIPO NATIVO   V0.6",3,rgb(139,178,164));
     rect(210,420,850,450,rgb(24,43,45));
-    const char *opts[3]={"INICIAR TESTE 3D","CONTROLES","SAIR"};
+    const char *opts[3]={map_count?"ABRIR MAPA ORIGINAL":"INICIAR TESTE 3D","CONTROLES","SAIR"};
     for(int i=0;i<3;i++) {
         int y=476+i*110;
         rect(252,y-15,735,80,i==selection?rgb(133,106,67):rgb(37,61,61));
@@ -271,7 +326,8 @@ static float axis_value(uint8_t v) {
 int main() {
     setvbuf(stdout,NULL,_IONBF,0);
     begin_log();
-    logmsg("BOOT 0.5 ENTER init_video");
+    load_map_preview();
+    logmsg("BOOT 0.6 ENTER init_video");
     // Explicitly load the graphics module, in line with OpenOrbis's internal
     // module IDs; record the result even if the module is already loaded.
     logmsg("MODULE 01 before VIDEO_OUT load");
@@ -291,7 +347,7 @@ int main() {
     sceKernelUsleep(1500000);
     logmsg("STAGE 03 before UserService load");
     log_rc("MODULE 03 USER_SERVICE load", (int)sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_INTERNAL_USER_SERVICE));
-    logmsg("BOOT 0.5 video returned OK, before UserService");
+    logmsg("BOOT 0.6 video returned OK, before UserService");
     OrbisUserServiceInitializeParams usr;
     memset(&usr,0,sizeof(usr));
     usr.priority=ORBIS_KERNEL_PRIO_FIFO_LOWEST;
@@ -316,7 +372,7 @@ int main() {
         }
         } else logmsg("PAD skipped: sysmodule load failed");
     } else logmsg("PAD: no valid user, skipping pad init");
-    logmsg("BOOT 0.5 entering event loop");
+    logmsg("BOOT 0.6 entering event loop");
     if(pad<0) logmsg("WARNING controller not ready");
     int screen=0,selected=0,frame=2;
     uint32_t prev=0;
@@ -329,7 +385,7 @@ int main() {
             if(pressed & ORBIS_PAD_BUTTON_UP) selected=(selected+2)%3;
             if(pressed & ORBIS_PAD_BUTTON_DOWN) selected=(selected+1)%3;
             if(pressed & ORBIS_PAD_BUTTON_CROSS) {
-                if(selected==0) {screen=1;logmsg("Scene 3D opened");}
+                if(selected==0) {screen=1;logmsg(map_count?"Original map preview opened":"Scene 3D opened");}
                 else if(selected==1) screen=2;
                 else {logmsg("User exited");break;}
             }

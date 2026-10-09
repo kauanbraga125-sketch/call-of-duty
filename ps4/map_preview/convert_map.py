@@ -98,7 +98,8 @@ def get_spawn(entities, verts):
             pos = tuple(float(v) for v in props["origin"].split())
             if len(pos) != 3 or not all(map(math.isfinite, pos)):
                 continue
-            yaw = float(props.get("angle", props.get("angles", "0").split()[-1]))
+            angles = props.get("angles", "0 0 0").split()
+            yaw = float(props["angle"]) if "angle" in props else float(angles[1] if len(angles)>1 else "0")
             return (*pos, yaw)
         except (ValueError, KeyError):
             continue
