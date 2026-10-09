@@ -1,4 +1,4 @@
-// COD1 PS4 - independent native boot prototype 0.4 / diagnostic.
+// COD1 PS4 - independent native boot prototype 0.5 / staged diagnostic.
 // Clean-room homebrew; this is NOT the original Call of Duty engine or campaign.
 // VideoOut software framebuffer adapted from documented OpenOrbis graphics sample.
 #include <stdint.h>
@@ -12,6 +12,8 @@
 #include <orbis/VideoOut.h>
 #include <orbis/Pad.h>
 #include <orbis/UserService.h>
+#include <orbis/Sysmodule.h>
+#include <orbis/SystemService.h>
 
 static const int W = 1920, H = 1080, COUNT = 2;
 static const size_t FB_BYTES = 1920u * 1080u * 4u;
@@ -30,7 +32,7 @@ static void logmsg(const char *s) {
 static void begin_log() {
     mkdir("/data/codps4", 0777);
     logfile = fopen("/data/codps4/boot.log", "a");
-    logmsg("BOOT 0.4 ENTER main - log opened");
+    logmsg("BOOT 0.5 ENTER main - log opened");
 }
 static void log_rc(const char *stage,int code) {
     char line[200];snprintf(line,sizeof(line),"%s result=%d (0x%08X)",stage,code,(unsigned)code);
@@ -169,14 +171,14 @@ static void scene3d() {
     text(60,42,"COD1 PS4  /  TESTE DE CAMERA",3,rgb(241,229,198));
     rect(35,941,1540,97,rgb(12,23,24));
     text(62,960,"ANALOGICO ESQUERDO: MOVER   DIREITO: OLHAR",2,rgb(198,218,212));
-    text(62,996,"BOLA: MENU     OPTIONS: MENU    SEM MISSOES NA V0.4",2,rgb(241,195,140));
+    text(62,996,"BOLA: MENU     OPTIONS: MENU    SEM MISSOES NA V0.5",2,rgb(241,195,140));
 }
 static void menu(int selection) {
     background();
     rect(114,145,1690,790,rgb(17,27,30));
     rect(114,145,18,790,rgb(181,145,93));
     text(203,208,"COD 1  -  PS4",8,rgb(239,219,174));
-    text(206,310,"PROTOTIPO NATIVO   V0.4",3,rgb(139,178,164));
+    text(206,310,"PROTOTIPO NATIVO   V0.5",3,rgb(139,178,164));
     rect(210,420,850,450,rgb(24,43,45));
     const char *opts[3]={"INICIAR TESTE 3D","CONTROLES","SAIR"};
     for(int i=0;i<3;i++) {
@@ -269,13 +271,27 @@ static float axis_value(uint8_t v) {
 int main() {
     setvbuf(stdout,NULL,_IONBF,0);
     begin_log();
-    logmsg("BOOT 0.4 ENTER init_video");
+    logmsg("BOOT 0.5 ENTER init_video");
+    // Explicitly load the graphics module, in line with OpenOrbis's internal
+    // module IDs; record the result even if the module is already loaded.
+    logmsg("MODULE 01 before VIDEO_OUT load");
+    log_rc("MODULE 02 VIDEO_OUT load", (int)sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_INTERNAL_VIDEO_OUT));
     if(!init_video()) {
         logmsg("FATAL graphics initialization failed");
         for(int i=0;i<200;i++) sceKernelUsleep(100000);
-        return 1;
+        // Do not return through _exit on PS4: preserve crash diagnostics.
+        for (;;) sceKernelUsleep(500000);
     }
-    logmsg("BOOT 0.4 video returned OK, before UserService");
+    // Draw/present a menu BEFORE touching UserService and Pad. A visible menu,
+    // followed by a crash, then implicates pad/userservice, not video startup.
+    logmsg("STAGE 01 before first video frame (no controller)");
+    menu(0);
+    flip(1);
+    logmsg("STAGE 02 first video frame finished");
+    sceKernelUsleep(1500000);
+    logmsg("STAGE 03 before UserService load");
+    log_rc("MODULE 03 USER_SERVICE load", (int)sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_INTERNAL_USER_SERVICE));
+    logmsg("BOOT 0.5 video returned OK, before UserService");
     OrbisUserServiceInitializeParams usr;
     memset(&usr,0,sizeof(usr));
     usr.priority=ORBIS_KERNEL_PRIO_FIFO_LOWEST;
@@ -286,6 +302,11 @@ int main() {
     log_rc("USER 02 sceUserServiceGetInitialUser",urc);
     log_rc("USER 03 user ID",user_id);
     if(user_id>=0) {
+        logmsg("MODULE 04 before PAD module load");
+        int module_rc=(int)sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_INTERNAL_PAD);
+        log_rc("MODULE 05 PAD module load",module_rc);
+        // If module loading fails, do not call into an uninitialized pad lib.
+        if(module_rc>=0) {
         logmsg("PAD 01 before scePadInit");
         int prc=scePadInit();
         log_rc("PAD 02 scePadInit",prc);
@@ -293,10 +314,11 @@ int main() {
             pad=scePadOpen(user_id,0,0,NULL);
             log_rc("PAD 03 scePadOpen",pad);
         }
+        } else logmsg("PAD skipped: sysmodule load failed");
     } else logmsg("PAD: no valid user, skipping pad init");
-    logmsg("BOOT 0.4 entering event loop");
+    logmsg("BOOT 0.5 entering event loop");
     if(pad<0) logmsg("WARNING controller not ready");
-    int screen=0,selected=0,frame=1;
+    int screen=0,selected=0,frame=2;
     uint32_t prev=0;
     for (;;) {
         OrbisPadData d;memset(&d,0,sizeof(d));
@@ -323,13 +345,18 @@ int main() {
                 cam.x=clampf(cam.x,-55,55);cam.z=clampf(cam.z,-25,80);
             }
         } else if (screen==2 && (pressed & (back | ORBIS_PAD_BUTTON_CROSS))) screen=0;
-        if(frame==1) logmsg("FRAME 00 before drawing menu");
+        if(frame==2) logmsg("FRAME 00 before drawing menu");
         if(screen==0) menu(selected);else if(screen==1)scene3d();else controls();
-        if(frame==1) logmsg("FRAME 00 done drawing menu");
+        if(frame==2) logmsg("FRAME 00 done drawing menu");
         if(pad<0)text(65,1050,"AVISO: CONTROLE NAO DETECTADO",2,rgb(255,149,90));
         flip(frame++);
     }
+    // Avoid returning from main(): certain PS4 OpenOrbis runtimes report
+    // CE-34878-0 on normal _exit. Request dashboard exit via SystemService.
     if(pad>=0) scePadClose(pad);
-    if(logfile)fclose(logfile);
-    return 0;
+    logmsg("EXIT 01 request dashboard exit");
+    sceSystemServiceLoadExec("exit",NULL);
+    logmsg("EXIT 02 return from LoadExec (unexpected); idle safely");
+    for (;;) sceKernelUsleep(500000);
+
 }

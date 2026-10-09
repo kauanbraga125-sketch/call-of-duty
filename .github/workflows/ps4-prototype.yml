@@ -1,4 +1,4 @@
-name: PS4 - Prototipo Nativo 0.4
+name: PS4 - Prototipo Nativo 0.5
 
 on:
   workflow_dispatch:
@@ -60,11 +60,15 @@ jobs:
         run: |
           set -euxo pipefail
           make
+          echo "=== ELF imports / dynamic dependencies ==="
+          readelf -d build/prototype.elf | grep -E 'NEEDED|SONAME' || true
+          echo "=== ELF executable info ==="
+          readelf -h build/prototype.elf | head -n 30
           test -s IV0000-CODP40001_00-COD1PS4PROTOTYPE.pkg
       - name: Publicar PKG experimental
         uses: actions/upload-artifact@v4
         with:
-          name: cod1-ps4-boot-v0.4-diagnostico
+          name: cod1-ps4-boot-v0.5-init-staged
           path: ps4/prototype/*.pkg
           if-no-files-found: error
           retention-days: 14

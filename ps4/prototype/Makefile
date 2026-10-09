@@ -1,7 +1,7 @@
 # PS4 native boot prototype 0.2 - OpenOrbis >= v0.5.4.
 # No commercial COD binaries/data or SDK binaries are checked into Git.
 TITLE := COD1 PS4 - Prototipo
-VERSION := 01.04
+VERSION := 01.05
 TITLE_ID := CODP40001
 CONTENT_ID := IV0000-CODP40001_00-COD1PS4PROTOTYPE
 # Authinfo from standard OpenOrbis/GoldHEN homebrew examples (not PSN credentials).
@@ -13,7 +13,7 @@ LD := ld.lld
 CFLAGS := --target=x86_64-pc-freebsd12-elf -std=c++11 -O2 -fPIC -funwind-tables \
           -isysroot $(TOOLCHAIN) -isystem $(TOOLCHAIN)/include \
           -isystem $(TOOLCHAIN)/include/c++/v1 -c -Wall -Wextra
-LIBS := -lkernel -lSceVideoOut -lScePad -lSceUserService -lc -lc++ -lm
+LIBS := -lkernel -lSceVideoOut -lScePad -lSceUserService -lSceSysmodule -lSceSystemService -lc -lc++ -lm
 LDFLAGS := -m elf_x86_64 -pie --script $(TOOLCHAIN)/link.x --eh-frame-hdr \
            -L$(TOOLCHAIN)/lib $(LIBS) $(TOOLCHAIN)/lib/crt1.o
 
