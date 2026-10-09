@@ -5,6 +5,8 @@ on:
   push:
     paths:
       - 'ps4/prototype/**'
+      - 'ps4/map_preview/**'
+      - 'tests/test_map_preview.py'
       - '.github/workflows/ps4-prototype.yml'
 
 jobs:
