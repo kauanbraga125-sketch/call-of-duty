@@ -1,4 +1,4 @@
-name: PS4 - Prototipo Nativo 0.7
+name: PS4 - Prototipo Nativo 1.0
 
 on:
   workflow_dispatch:
@@ -73,7 +73,7 @@ jobs:
       - name: Publicar PKG experimental
         uses: actions/upload-artifact@v4
         with:
-          name: cod1-ps4-map-preview-v0.7-public-no-assets
+          name: cod1-ps4-v1.0-public-no-assets
           path: ps4/prototype/*.pkg
           if-no-files-found: error
           retention-days: 14
@@ -95,7 +95,7 @@ jobs:
       - name: Disponibilizar kit local sem arquivos do jogo
         uses: actions/upload-artifact@v4
         with:
-          name: cod1-ps4-v0.7-private-local-kit-no-assets
+          name: cod1-ps4-v1.0-private-local-kit-no-assets
           path: /tmp/cod1-private-kit/
           if-no-files-found: error
           retention-days: 14
