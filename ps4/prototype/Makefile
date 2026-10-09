@@ -1,9 +1,11 @@
 # PS4 native boot prototype 0.2 - OpenOrbis >= v0.5.4.
 # No commercial COD binaries/data or SDK binaries are checked into Git.
 TITLE := COD1 PS4 - Prototipo
-VERSION := 0.20
+VERSION := 01.03
 TITLE_ID := CODP40001
 CONTENT_ID := IV0000-CODP40001_00-COD1PS4PROTOTYPE
+# Authinfo from standard OpenOrbis/GoldHEN homebrew examples (not PSN credentials).
+AUTHINFO := 000000000000000000000000001C004000FF000000000080000000000000000000000000000000000000008000400040000000000000008000000000000000080040FFFF000000F000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 TOOLCHAIN := $(OO_PS4_TOOLCHAIN)
 BIN := $(TOOLCHAIN)/bin/linux
 CC := clang++
@@ -26,7 +28,7 @@ build/prototype.elf: build/main.o
 	$(LD) $< -o $@ $(LDFLAGS)
 
 eboot.bin: build/prototype.elf
-	$(BIN)/create-fself -in=$< -out=build/prototype.oelf --eboot eboot.bin --paid 0x3800000000000011
+	$(BIN)/create-fself -in=$< -out=build/prototype.oelf --eboot eboot.bin --paid 0x3800000000000011 --authinfo $(AUTHINFO)
 
 sce_sys/icon0.png: tools/make_icon.py
 	@mkdir -p sce_sys
@@ -37,8 +39,8 @@ sce_sys/param.sfo: Makefile
 	$(BIN)/PkgTool.Core sfo_new $@
 	$(BIN)/PkgTool.Core sfo_setentry $@ APP_TYPE --type Integer --maxsize 4 --value 1
 	$(BIN)/PkgTool.Core sfo_setentry $@ APP_VER --type Utf8 --maxsize 8 --value '$(VERSION)'
-	$(BIN)/PkgTool.Core sfo_setentry $@ ATTRIBUTE --type Integer --maxsize 4 --value 0
-	$(BIN)/PkgTool.Core sfo_setentry $@ CATEGORY --type Utf8 --maxsize 4 --value 'gd'
+	$(BIN)/PkgTool.Core sfo_setentry $@ ATTRIBUTE --type Integer --maxsize 4 --value 32
+	$(BIN)/PkgTool.Core sfo_setentry $@ CATEGORY --type Utf8 --maxsize 4 --value 'gde'
 	$(BIN)/PkgTool.Core sfo_setentry $@ CONTENT_ID --type Utf8 --maxsize 48 --value '$(CONTENT_ID)'
 	$(BIN)/PkgTool.Core sfo_setentry $@ DOWNLOAD_DATA_SIZE --type Integer --maxsize 4 --value 0
 	$(BIN)/PkgTool.Core sfo_setentry $@ SYSTEM_VER --type Integer --maxsize 4 --value 0

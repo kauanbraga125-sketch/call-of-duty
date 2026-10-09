@@ -1,4 +1,4 @@
-# CoD 1 PS4 — boot nativo experimental v0.2
+# CoD 1 PS4 — boot nativo experimental v0.3
 
 Esta pasta contem um **aplicativo independente de teste**, não uma porta da campanha e não o executavel comercial CoDSP.exe.
 
@@ -11,7 +11,7 @@ Esta pasta contem um **aplicativo independente de teste**, não uma porta da cam
 - Painel de controles e botao sair.
 - Log persistido, quando acessivel, em \`/data/codps4/boot.log\`.
 
-**Nao inclui:** campanha original, mapas proprietarios, musica, audio, armas, missões, IA, motor real do CoD, gameplay Single Player. O objetivo da v0.2 e apenas demonstrar inicializacao e entradas no hardware.
+**Nao inclui:** campanha original, mapas proprietarios, musica, audio, armas, missões, IA, motor real do CoD, gameplay Single Player. O objetivo da v0.3 e apenas demonstrar inicializacao e entradas no hardware.
 
 ## Compilacao
 
@@ -53,8 +53,18 @@ Nao adicionar conteudo de Call of Duty, cracks, executaveis comerciais ou SDK bi
 
 O pacote v0.1 foi instalado no console, mas recebeu a mensagem de dados do aplicativo corrompidos ao executar. A causa ainda **não foi confirmada**; não foi fornecido um código de erro.
 
-Um erro conhecido no nosso pacote anterior foi identificado: o ícone gerado tinha PNG com color type 6 (RGBA, 32 bits). A documentação do OpenOrbis exige \`icon0.png\` **512×512, RGB 24 bits, sem transparência**. A v0.2 corrige o gerador para color type 2 e testa esse requisito antes da compilação.
+Um erro conhecido no nosso pacote anterior foi identificado: o ícone gerado tinha PNG com color type 6 (RGBA, 32 bits). A documentação do OpenOrbis exige \`icon0.png\` **512×512, RGB 24 bits, sem transparência**. A v0.3 corrige o gerador para color type 2 e testa esse requisito antes da compilação.
 
-Para testar v0.2: **remover apenas o aplicativo experimental antigo** da tela inicial do PS4; confirmar GoldHEN ativado; instalar o novo PKG e capturar o erro exato, se ainda ocorrer. Não apagar outros jogos, nem reconstruir banco de dados/formatação do console para tentar corrigir este protótipo.
+Para testar v0.3: **remover apenas o aplicativo experimental antigo** da tela inicial do PS4; confirmar GoldHEN ativado; instalar o novo PKG e capturar o erro exato, se ainda ocorrer. Não apagar outros jogos, nem reconstruir banco de dados/formatação do console para tentar corrigir este protótipo.
 
 Se persistir, investigar a autenticação do fSELF, metadados de PKG e estado de jailbreak com o código CE/NP.
+
+
+## Diagnóstico do erro de instalação/executar
+
+Em testes reais, as versões 0.1 e 0.2 instalaram mas mostraram "dados do aplicativo corrompidos" ao abrir, sem código CE. Isso sugere problema anterior à execução do menu, mas não comprova a causa. A v0.3 muda três campos de empacotamento baseando-se em exemplos do ioQuake3-PS4 e GoldHEN Cheats Manager:
+- `create-fself --authinfo` (bloco de autenticação esperado pelos exemplos de homebrew);
+- `CATEGORY=gde` e `ATTRIBUTE=32` no `param.sfo`;
+- versão de aplicativo no padrão `01.03`.
+
+Estas mudanças ainda não foram verificadas no hardware. Caso falhe novamente, parar de repetir instalações e investigar logs GoldHEN/klog, versão e se outros homebrews executam normalmente.

@@ -1,4 +1,4 @@
-name: PS4 - Prototipo Nativo 0.2
+name: PS4 - Prototipo Nativo 0.3
 
 on:
   workflow_dispatch:
@@ -64,7 +64,7 @@ jobs:
       - name: Publicar PKG experimental
         uses: actions/upload-artifact@v4
         with:
-          name: cod1-ps4-boot-v0.2-experimental
+          name: cod1-ps4-boot-v0.3-experimental
           path: ps4/prototype/*.pkg
           if-no-files-found: error
           retention-days: 14
